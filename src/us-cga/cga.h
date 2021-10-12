@@ -17,6 +17,8 @@
 #define CGA_SCREENBUFFER ((byte*)MK_FP(CGA_BASE_SEG, 0))
 #endif
 
+#define CGA_SCREEN_SIZE 0x4000
+
 #define CGA_NEXT_LINE(offs) ((CGA_ODD_LINES_OFS ^ (offs)) + (((offs) & CGA_ODD_LINES_OFS) ? 0 : CGA_BYTES_PER_LINE))
 #define CGA_PREV_LINE(offs) ((CGA_ODD_LINES_OFS ^ (offs)) - (((offs) & CGA_ODD_LINES_OFS) ? CGA_BYTES_PER_LINE : 0))
 
@@ -24,6 +26,15 @@
 
 void SwitchToGraphicsMode(void);
 void SwitchToTextMode(void);
+
+void CGA_Buffer2ToBuffer3(void);
+void CGA_Buffer3ToBuffer2(void);
+void CGA_ScreenToBuffer3(void);
+void CGA_Buffer3ToScreen(void);
+void CGA_ScreenToBuffer1(void);
+void CGA_Buffer1ToScreen(void);
+void CGA_Buffer1ToBuffer3(void);
+void CGA_Buffer3ToBuffer1(void);
 
 
 #endif

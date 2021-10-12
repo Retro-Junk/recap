@@ -24,6 +24,6 @@ void SetBit100(uint16 index1, uint16 index2) {
 	SetBit(100 + index1 * 5 + index2);
 }
 
-void GetBit100(uint16 index1, uint16 index2) {
+bool GetBit100(uint16 index1, uint16 index2) {
 	return GetBit(100 + index1 * 5 + index2);
 }

@@ -1,14 +1,43 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <dos.h>
 #include "common.h"
+#include "data.h"
 #include "cga.h"
+#include "script.h"
+#include "timer.h"
+#include "input.h"
+
+byte rand_0;
+byte rand_1;
+
+void UninitSystem(void) {
+	UninitTimerAll();
+	UninitKeyboard();
+}
+
+void ExitGame(char *msg) {
+	UninitSystem();
+	SwitchToTextMode();
+	printf("%s\n", msg);
+	exit(0);	
+}
+
+int nocbrk(void) { return 1; }
 
 void InitGame(void) {
 	SwitchToGraphicsMode();
-	/*DisableCritical();*/
-	
+#ifdef __TURBOC__
+    ctrlbrk(nocbrk);
+#endif
+
+	if (!LoadFile("egalogo.cga", wseg_8_backbuffer3))
+		ExitGame("egalogo");
+	CGA_Buffer3ToScreen();
+
+for(;;) ;
 
 
-
-	SwitchToTextMode();
 }
 
 unsigned long rand_seed = 0;
@@ -25,7 +54,7 @@ byte RandByte(void) {
 uint16 rand_seq[64][2];
 
 void RandomizeThings(void) {
-	int i;
+	int i, j;
 	uint16 r;
 	rand_seed = 1234;	/*TODO: this is initialized from random memory*/
 
@@ -84,7 +113,7 @@ void Redraw1(void) {
 
 }
 
-void RunEvents(int x) {
+void RunEvents(int ticks) {
 
 }
 

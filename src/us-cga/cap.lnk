@@ -2,4 +2,7 @@ data.obj+
 data2.obj+
 scrbuff.obj+
 cga.obj+
+script.obj+
+timer.obj+
+input.obj+
 cap.obj
