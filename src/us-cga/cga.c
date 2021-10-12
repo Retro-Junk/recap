@@ -5,6 +5,22 @@
 
 uint16 cga_screen_size = CGA_SCREEN_SIZE;
 
+uint16 cga_lines_ofs[206];
+
+const byte cga_pixel_masks[4][4] = {
+	{~0xC0, ~0x30, ~0x0C, ~0x03},
+	{~0xC0, ~0x30, ~0x0C, ~0x03},
+	{~0xC0, ~0x30, ~0x0C, ~0x03},
+	{~0xC0, ~0x30, ~0x0C, ~0x03}
+};
+
+const byte cga_pixel_colors[4][4] = {
+	{0x00, 0x00, 0x00, 0x00},
+	{0x40, 0x10, 0x04, 0x01},
+	{0x80, 0x20, 0x08, 0x02},
+	{0xC0, 0x30, 0x0C, 0x03}
+};
+
 /*
   Switch to CGA 320x200x2bpp mode
 */
@@ -18,6 +34,15 @@ void SwitchToGraphicsMode(void) {
 	reg.x.ax = 4;
 	int86(0x10, &reg, &reg);
 #endif
+
+	/*initialize line offsets table*/
+	{
+		int i, ofs = 0;
+		for(i = 0;ofs < CGA_ODD_LINES_OFS;ofs += CGA_BYTES_PER_LINE) {
+			cga_lines_ofs[i++] = ofs;
+			cga_lines_ofs[i++] = ofs + CGA_ODD_LINES_OFS;
+		}
+	}
 }
 
 /*
@@ -69,4 +94,94 @@ void CGA_Buffer1ToBuffer3(void) {
 
 void CGA_Buffer3ToBuffer1(void) {
 	CGA_CopyScreen(wseg_8_backbuffer3, wseg_6_backbuffer1);
+}
+
+/*
+Blit interlaced pixels to CGA frame buffer
+NB! Width is in bytes, not pixels
+*/
+void CGA_BlitRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer) {
+	uint16 i, ofs;
+	/*even lines*/
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		memcpy(buffer + ofs, pixels, w);
+		pixels += w;
+		ofs += w;
+	}
+
+	/*odd lines*/
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		memcpy(buffer + ofs, pixels, w);
+		pixels += w;
+		ofs += w;
+	}
+}
+
+/*
+Grab interlaced pixels from CGA frame buffer
+NB! Width is in bytes, not pixels
+*/
+void CGA_GrabRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer) {
+	uint16 i, ofs;
+	/*even lines*/
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		memcpy(pixels, buffer + ofs, w);
+		pixels += w;
+		ofs += w;
+	}
+
+	/*odd lines*/
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		memcpy(pixels, buffer + ofs, w);
+		pixels += w;
+		ofs += w;
+	}
+}
+
+/*
+Fill CGA frame buffer with pixel (four-pixel)
+NB! Width is in bytes, not pixels
+*/
+void CGA_FillRect(byte pixel, uint16 x, uint16 y, byte w, byte h, byte *buffer) {
+	uint16 i, ofs;
+	/*even lines*/
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		memset(buffer + ofs, pixel, w);
+		ofs += w;
+	}
+
+	/*odd lines*/
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		memset(buffer + ofs, pixel, w);
+		ofs += w;
+	}
+}
+
+void CGA_ClearScreen(void) {
+	memset(frontbuffer, 0, CGA_SCREEN_SIZE);
+}
+
+/*
+Replace target screen with source, by drawing each step'th dot
+*/
+void CGA_DotCrossFade(byte *source, uint16 step, byte *target) {
+	uint16 ofs = 0, x, y, o;
+	do {
+		x = ofs % CGA_WIDTH;
+		y = ofs / CGA_WIDTH;
+		o = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+
+		target[o] &= cga_pixel_masks[0][x % CGA_PIXELS_PER_BYTE];
+		target[o] |= source[o] & cga_pixel_colors[3][x % CGA_PIXELS_PER_BYTE];
+
+		ofs += step;
+		if (ofs >= 64000)
+			ofs -= 64000;
+	} while(ofs != 0);
 }

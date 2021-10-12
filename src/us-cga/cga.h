@@ -11,6 +11,8 @@
 #define CGA_PIXELS_PER_BYTE (8 / CGA_BITS_PER_PIXEL)
 #define CGA_BYTES_PER_LINE (CGA_WIDTH / CGA_PIXELS_PER_BYTE)
 
+#define CGAW(x) ((x) / CGA_PIXELS_PER_BYTE)
+
 #ifdef __386__
 #define CGA_SCREENBUFFER ((byte*)(CGA_BASE_SEG * 16))
 #else
@@ -36,5 +38,12 @@ void CGA_Buffer1ToScreen(void);
 void CGA_Buffer1ToBuffer3(void);
 void CGA_Buffer3ToBuffer1(void);
 
+
+void CGA_BlitRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer);
+void CGA_GrabRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer);
+void CGA_FillRect(byte pixel, uint16 x, uint16 y, byte w, byte h, byte *buffer);
+void CGA_ClearScreen(void);
+
+void CGA_DotCrossFade(byte *source, uint16 step, byte *target);
 
 #endif

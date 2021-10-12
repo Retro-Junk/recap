@@ -7,9 +7,15 @@
 #include "script.h"
 #include "timer.h"
 #include "input.h"
+#include "sound.h"
 
 byte rand_0;
 byte rand_1;
+
+void InitSystem(void) {
+	InitKeyboard();
+	InitTimerAll();
+}
 
 void UninitSystem(void) {
 	UninitTimerAll();
@@ -31,12 +37,60 @@ void InitGame(void) {
     ctrlbrk(nocbrk);
 #endif
 
+	/*Mindscape logo*/
 	if (!LoadFile("egalogo.cga", wseg_8_backbuffer3))
 		ExitGame("egalogo");
 	CGA_Buffer3ToScreen();
 
-for(;;) ;
+	if (!LoadSounds())
+		ExitGame("sound");
 
+	if (!LoadFile("gene.cga", wseg_6_backbuffer1))
+		ExitGame("gene");
+
+	CGA_GrabRect(wseg_1, 87, 0, CGAW(200), 6, wseg_6_backbuffer1);	
+	CGA_FillRect(0, 87, 0, CGAW(200), 6, wseg_6_backbuffer1);	/*TODO: this does not fully remove "insert disk" header?*/
+
+	/*Title screen*/
+	CGA_DotCrossFade(wseg_6_backbuffer1, 149, frontbuffer);
+
+	if (!LoadFile("titre.cga", wseg_8_backbuffer3))
+		ExitGame("titre");
+
+	CGA_BlitRect(wseg_1, 87, 0, CGAW(200), 6, wseg_6_backbuffer1);	
+	CGA_BlitRect(wseg_1, 87, 0, CGAW(200), 6, wseg_8_backbuffer3);	
+
+	/*TODO: init joystick*/
+
+	InitMouse();
+
+	InitSystem();
+
+	PlaySound(0);
+
+	{
+		int screen, delay, good = 0;
+		for(screen = 0;!good;screen ^= 1) {
+			if (screen == 0) {
+				CGA_DotCrossFade(wseg_8_backbuffer3, 99, frontbuffer);
+				delay = 5;
+			} else {
+				CGA_DotCrossFade(wseg_6_backbuffer1, 21, frontbuffer);
+				delay = 6;
+			}
+			ticks_sec = 0;
+
+			while (ticks_sec <= delay) {
+				if (IsMouseClicked() || IsJoystickClicked() || IsKeyboardClicked()) {
+					StopSound();
+					UninitTimerAll();	/*TODO: bug? ticks will never update after that*/
+
+					good = 1;
+					break;
+				}
+			}
+		}
+	}
 
 }
 

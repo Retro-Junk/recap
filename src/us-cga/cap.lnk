@@ -5,4 +5,5 @@ cga.obj+
 script.obj+
 timer.obj+
 input.obj+
+sound.obj+
 cap.obj
