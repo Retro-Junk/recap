@@ -46,8 +46,37 @@ void DrawSomething2(void) {
 	/*TODO*/
 }
 
-void DrawCountes1(byte *target) {
-	/*TODO*/
+char str_buf[32];
+
+void IntToStr(uint16 value, byte width, char *buffer) {
+#if 0
+	uint16 i;
+	uint16 base = 1;
+	for (i = 0;i < width - 1;i++)
+		base *= 10;
+	for (i = 0;width;width--) {
+		byte digit = valey / base;
+		if (digit != 0 || width == 1) {
+			*buffer++ = digit + '0';
+			i++;
+		} else if (i != 0) 
+			*buffer++ = digit + '0';
+		else
+			*buffer++ = ' ';
+		value %= base;
+		base /= 10;
+	}	
+	*buffer = 0;
+#else
+	sprintf((char*)buffer, "%*u", width, value);
+#endif
+}
+
+void DrawCounters1(byte *target) {
+	IntToStr(rand_0, 3, str_buf);
+	PrintString(132, 5, str_buf, target);
+	IntToStr(rand_1, 3, str_buf);
+	PrintString(164, 5, str_buf, target);
 }
 
 byte show_counters2 = 1;
@@ -67,7 +96,7 @@ void DrawShipInterior(void) {
 	DrawSomething2();
 	CGA_Buffer3ToBuffer1();
 
-	DrawCountes1(wseg_6_backbuffer1);
+	DrawCounters1(wseg_6_backbuffer1);
 	show_counters2 = 1;
 	last_counters2_update = ~0u;
 	DrawCounters2(wseg_6_backbuffer1);

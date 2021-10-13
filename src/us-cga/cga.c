@@ -212,3 +212,63 @@ void CGA_DotCrossFade(byte *source, uint16 step, byte *target) {
 			ofs -= 64000u;
 	} while(ofs != 0);
 }
+
+void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target) {
+	byte sprw, sprh;
+	uint16 sprofs, maskofs, oddsofs, ofs, i, j;
+	byte *sprdata, *sprmask;
+
+	if (x >= 320 || y >= 200)
+		return;
+
+	sprofs = bank[index * 2];
+	sprofs |= bank[index * 2 + 1] << 8;
+	if (sprofs == 0)
+		return;
+
+	sprw = bank[sprofs];
+	sprh = bank[sprofs + 1];
+	maskofs = bank[sprofs + 2] | (bank[sprofs + 3] << 8);
+	oddsofs = bank[sprofs + 4] | (bank[sprofs + 5] << 8);
+
+#if 1
+	/*even lines*/
+	sprdata = bank + sprofs + 6;
+	sprmask = bank + sprofs + maskofs;
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < sprh / 2;i++) {
+		for (j = 0;j < sprw;j++) {
+			target[ofs + j] = (target[ofs + j] & *sprmask++) | *sprdata++;
+		}
+		ofs += CGA_BYTES_PER_LINE;
+	}
+#endif
+
+#if 1
+	/*odd lines*/
+	sprdata = bank + sprofs + 6 + oddsofs;
+	sprmask = bank + sprofs + maskofs + oddsofs;
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < sprh / 2;i++) {
+		for (j = 0;j < sprw;j++) {
+			target[ofs + j] = (target[ofs + j] & *sprmask++) | *sprdata++;
+		}
+		ofs += CGA_BYTES_PER_LINE;
+	}
+#endif
+}
+
+void PrintChar(byte c, uint16 x, uint16 y, byte *target) {
+	if (c < ' ' || c > 'Z')
+		return;
+	CGA_DrawSprite(c - ' ' + 27, x, y, main_data, target);
+}
+
+void PrintString(uint16 x, uint16 y, char *str, byte *target) {
+	char c;
+	while ((c = *str++) != 0) {
+		if (c != 1)
+			PrintChar(c, x, y, target);
+		x += 8;
+	}
+}
