@@ -72,18 +72,34 @@ void IntToStr(uint16 value, byte width, char *buffer) {
 #endif
 }
 
-void DrawCounters1(byte *target) {
+void DrawShipCoords(byte *target) {
 	IntToStr(rand_0, 3, str_buf);
 	PrintString(132, 5, str_buf, target);
 	IntToStr(rand_1, 3, str_buf);
 	PrintString(164, 5, str_buf, target);
 }
 
-byte show_counters2 = 1;
-uint16 last_counters2_update = ~0u;
+byte show_time = 1;
+uint16 last_time_draw = ~0u;
 
-void DrawCounters2(byte *target) {
-	/*TODO*/
+void DrawTime(byte *target) {
+	uint16 sec;
+	if (!show_time || ticks_sec == last_time_draw)
+		return;
+
+	last_time_draw = ticks_sec;
+	sec = ticks_sec;
+	if (sec <= 9) {
+		char s[] = "00";
+		s[1] += sec;
+		PrintString(172, 22, s, target);
+	} else {
+		IntToStr(sec, 2, str_buf);
+		PrintString(172, 22, str_buf, target);
+	}
+
+	IntToStr(ticks_min, 4, str_buf);
+	PrintString(132, 22, str_buf, target);
 }
 
 void DrawHand(byte *target) {
@@ -96,10 +112,10 @@ void DrawShipInterior(void) {
 	DrawSomething2();
 	CGA_Buffer3ToBuffer1();
 
-	DrawCounters1(wseg_6_backbuffer1);
-	show_counters2 = 1;
-	last_counters2_update = ~0u;
-	DrawCounters2(wseg_6_backbuffer1);
+	DrawShipCoords(wseg_6_backbuffer1);
+	show_time = 1;
+	last_time_draw = ~0u;
+	DrawTime(wseg_6_backbuffer1);
 
 	DrawHand(wseg_6_backbuffer1);
 
@@ -124,7 +140,7 @@ void InitGame(void) {
 		ExitGame("gene");
 
 	CGA_GrabRect(wseg_1, 87, 0, CGAW(200), 6, wseg_6_backbuffer1);	
-	CGA_FillRect(0, 87, 0, CGAW(200), 6, wseg_6_backbuffer1);	/*TODO: this does not fully remove "insert disk" header?*/
+	CGA_FillRect(0, 87, 0, CGAW(200), 6, wseg_6_backbuffer1);
 
 	/*Title screen*/
 	CGA_DotCrossFade(wseg_6_backbuffer1, 149, frontbuffer);
