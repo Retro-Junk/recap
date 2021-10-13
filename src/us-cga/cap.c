@@ -31,6 +31,52 @@ void ExitGame(char *msg) {
 
 int nocbrk(void) { return 1; }
 
+bool CanDispatch(void) {
+	/*TODO*/
+	return 0;
+}
+
+void DrawSomething1(void) {
+	if (CanDispatch()) {
+		CGA_BlitRect(wseg_0, 44, 40, CGAW(72), 70, wseg_8_backbuffer3);
+	}
+}
+
+void DrawSomething2(void) {
+	/*TODO*/
+}
+
+void DrawCountes1(byte *target) {
+	/*TODO*/
+}
+
+byte show_counters2 = 1;
+uint16 last_counters2_update = ~0u;
+
+void DrawCounters2(byte *target) {
+	/*TODO*/
+}
+
+void DrawHand(byte *target) {
+	/*TODO*/
+}
+
+void DrawShipInterior(void) {
+	CGA_TableauToBuffer3();
+	DrawSomething1();
+	DrawSomething2();
+	CGA_Buffer3ToBuffer1();
+
+	DrawCountes1(wseg_6_backbuffer1);
+	show_counters2 = 1;
+	last_counters2_update = ~0u;
+	DrawCounters2(wseg_6_backbuffer1);
+
+	DrawHand(wseg_6_backbuffer1);
+
+	CGA_Buffer1ToScreen();
+}
+
 void InitGame(void) {
 	SwitchToGraphicsMode();
 #ifdef __TURBOC__
@@ -85,12 +131,58 @@ void InitGame(void) {
 					StopSound();
 					UninitTimerAll();	/*TODO: bug? ticks will never update after that*/
 
-					good = 1;
-					break;
+					if (LoadFile("iko.cgc", bits_pool_seg + 0xA00))
+					{
+						good = 1;
+						break;
+					}
 				}
 			}
 		}
 	}
+
+	if (!LoadFile("dicogb.bin", bits_pool_seg))
+		ExitGame("dicogb");
+
+	ClearKeys();
+
+	if (!LoadFile("galax.cgc", galax_data))
+		ExitGame("galax");
+
+	ClearKeys();
+
+	if (!LoadFile("main.cgs", main_data))
+		ExitGame("main");
+
+	ClearKeys();
+
+	if (!LoadFile("tableau.cga", tableau_data))
+		ExitGame("tableau");
+
+	InitTimerAll();
+	ClearKeys();
+
+	sound_data[0] = 0;
+
+	/*
+	TODO: tweak some sounds speed according to machine performance
+	ticks_6 = 0;
+	// burn cpu cycles
+	if (ticks_6 > 9) {
+		sound_data[0] = 1;
+		sounds_table[7].speed = 2;
+		sounds_table[9].speed = 2;
+	}
+	*/
+
+	ConsumeKeys();
+
+	ticks_min = 0;
+	ticks_sec = 0;
+	
+	DrawShipInterior();
+
+for (;;) ;
 
 }
 
@@ -136,11 +228,6 @@ again:
 
 	
 
-}
-
-
-bool CanDispatch(void) {
-	return 0;
 }
 
 void Dispatch1(void) {

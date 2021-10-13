@@ -17,7 +17,7 @@ volatile uint16 ticks_sec = 0;
 void (INTERRUPT *old_timer_isr)(void);
                
 void INTERRUPT TimerIsr() {
-   (*old_timer_isr) ();
+	(*old_timer_isr)();
 
 	if (--timer_countdown1 == 0) {
 		timer_countdown1 = timer_reload1;

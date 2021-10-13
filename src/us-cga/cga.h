@@ -29,8 +29,8 @@
 void SwitchToGraphicsMode(void);
 void SwitchToTextMode(void);
 
-void CGA_Buffer2ToBuffer3(void);
-void CGA_Buffer3ToBuffer2(void);
+void CGA_TableauToBuffer3(void);
+void CGA_Buffer3ToTableau(void);
 void CGA_ScreenToBuffer3(void);
 void CGA_Buffer3ToScreen(void);
 void CGA_ScreenToBuffer1(void);
@@ -38,7 +38,9 @@ void CGA_Buffer1ToScreen(void);
 void CGA_Buffer1ToBuffer3(void);
 void CGA_Buffer3ToBuffer1(void);
 
+void CGA_Rect3ToScreen(uint16 x, uint16 y, byte w, byte h);
 
+void CGA_CopyRect(byte *source, uint16 x, uint16 y, byte w, byte h, byte *buffer);
 void CGA_BlitRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer);
 void CGA_GrabRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer);
 void CGA_FillRect(byte pixel, uint16 x, uint16 y, byte w, byte h, byte *buffer);
