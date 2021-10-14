@@ -9,8 +9,8 @@
 #include "input.h"
 #include "sound.h"
 
-byte rand_0;
-byte rand_1;
+byte ship_x;
+byte ship_y;
 
 void InitSystem(void) {
 	InitKeyboard();
@@ -73,9 +73,9 @@ void IntToStr(uint16 value, byte width, char *buffer) {
 }
 
 void DrawShipCoords(byte *target) {
-	IntToStr(rand_0, 3, str_buf);
+	IntToStr(ship_x, 3, str_buf);
 	PrintString(132, 5, str_buf, target);
-	IntToStr(rand_1, 3, str_buf);
+	IntToStr(ship_y, 3, str_buf);
 	PrintString(164, 5, str_buf, target);
 }
 
@@ -262,8 +262,8 @@ again:
 	}
 
 	r = rand_seq[(RandByte() % 4) * 2][0];
-	rand_0 = r & 255;
-	rand_1 = r >> 8;
+	ship_x = r & 255;
+	ship_y = r >> 8;
 
 	for (i = 40;i <= 49;i++) {
 		SetBit(i);
