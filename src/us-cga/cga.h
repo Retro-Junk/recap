@@ -52,4 +52,6 @@ void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target);
 
 void PrintString(uint16 x, uint16 y, char *str, byte *target);
 
+void CGA_DrawHandSprite(byte index, uint16 x, uint16 y, uint16 ey, byte *bank, byte *target);
+
 #endif

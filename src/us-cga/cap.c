@@ -8,6 +8,7 @@
 #include "timer.h"
 #include "input.h"
 #include "sound.h"
+#include "hand.h"
 
 byte ship_x;
 byte ship_y;
@@ -100,10 +101,6 @@ void DrawTime(byte *target) {
 
 	IntToStr(ticks_min, 4, str_buf);
 	PrintString(132, 22, str_buf, target);
-}
-
-void DrawHand(byte *target) {
-	/*TODO*/
 }
 
 void DrawShipInterior(void) {
@@ -226,6 +223,10 @@ void InitGame(void) {
 	ticks_sec = 0;
 	
 	DrawShipInterior();
+
+	SetHandClip();
+	clip_sy = 160;
+	DashHand();
 
 for (;;) ;
 

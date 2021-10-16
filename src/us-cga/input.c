@@ -4,6 +4,7 @@
 #include "input.h"
 
 byte have_joystick = 0;
+byte have_mouse = 0;
 byte have_key = 0;
 
 void (INTERRUPT *old_keyboard_isr)(void);
@@ -121,6 +122,22 @@ void ClearKeys(void) {
 void InitMouse(void) {
 
 }
+
+void SetMousePos(uint16 x, uint16 y) {
+	union REGS reg;
+#ifdef __386__
+	reg.w.ax = 4;
+	reg.w.cx = x * 2;
+	reg.w.dx = y;
+	int386(0x33, &reg, &reg);
+#else
+	reg.x.ax = 4;
+	reg.x.cx = x * 2;
+	reg.x.dx = y;
+	int86(0x33, &reg, &reg);
+#endif
+}
+
 
 bool IsMouseClicked(void) {
 	return false;

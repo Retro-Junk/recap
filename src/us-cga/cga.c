@@ -272,3 +272,76 @@ void PrintString(uint16 x, uint16 y, char *str, byte *target) {
 		x += 8;
 	}
 }
+
+void CGA_DrawHandSpriteLines(byte shift, byte h, uint16 ofs, byte *sprdata, byte *sprmask, byte *source, byte *target) {
+	byte i, j;
+	if (shift == 0) {
+		/*aligned*/
+		for (i = 0;i < h;i++) {
+			for (j = 0;j < 32 / 4;j++) {
+				target[ofs + j] = (source[ofs + j] & *sprmask++) | *sprdata++;
+			}
+			ofs += CGA_BYTES_PER_LINE;
+		}
+	} else {
+		/*unaligned*/
+		for (i = 0;i < h;i++) {
+			uint16 mx = 0xFF00;
+			uint16 px = 0x0000;
+			for (j = 0;j < 32 / 4 - 1;j++) {
+				mx |= *sprmask;
+				px |= *sprdata;
+				target[ofs + j] = (source[ofs + j] & (mx >> shift)) | (px >> shift);
+				mx <<= 8;
+				px <<= 8;
+			}
+			mx |= 0xFF;
+			px |= 0;
+			target[ofs + j] = (source[ofs + j] & (mx >> shift)) | (px >> shift);
+			ofs += CGA_BYTES_PER_LINE;
+		}
+	}
+}
+
+void CGA_DrawHandSprite(byte index, uint16 x, uint16 y, uint16 ey, byte *bank, byte *target) {
+	byte shift;
+	byte maxy;
+
+	byte sprw, sprh;
+	uint16 sprofs, maskofs, oddsofs, ofs, i, j;
+	byte *sprdata, *sprmask;
+
+	if (x >= 320 || y >= 200)
+		return;
+
+	shift = (x % CGA_PIXELS_PER_BYTE) * CGA_BITS_PER_PIXEL;
+	maxy = (ey > CGA_HEIGHT) ? CGA_HEIGHT : ey;
+
+	sprofs = bank[index * 2];
+	sprofs |= bank[index * 2 + 1] << 8;
+	if (sprofs == 0)
+		return;
+
+	sprw = bank[sprofs];
+	sprh = bank[sprofs + 1];
+	maskofs = bank[sprofs + 2] | (bank[sprofs + 3] << 8);
+	oddsofs = bank[sprofs + 4] | (bank[sprofs + 5] << 8);
+
+	if (maxy - y < sprh)
+		sprh = maxy - y;
+
+	/*even lines*/
+	sprdata = bank + sprofs + 6;
+	sprmask = bank + sprofs + maskofs;
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	CGA_DrawHandSpriteLines(shift, (sprh + 1) / 2, ofs, sprdata, sprmask, wseg_8_backbuffer3, target);
+
+	/*odd lines*/
+	sprh -= (sprh + 1) / 2;
+	if (sprh != 0) {
+		sprdata = bank + sprofs + 6 + oddsofs;
+		sprmask = bank + sprofs + maskofs + oddsofs;
+		ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+		CGA_DrawHandSpriteLines(shift, sprh, ofs, sprdata, sprmask, wseg_8_backbuffer3, target);
+	}
+}
