@@ -13,6 +13,8 @@
 byte ship_x;
 byte ship_y;
 
+void Idle(int ticks);
+
 void InitSystem(void) {
 	InitKeyboard();
 	InitTimerAll();
@@ -32,20 +34,64 @@ void ExitGame(char *msg) {
 
 int nocbrk(void) { return 1; }
 
+byte oorxx_ready = 0;
+uint16 oorxx_pos = 0;
+
+void DrawOorxx(void) {
+	CGA_CopyRect(tableau_data, 208, 58, CGAW(32), 64, wseg_8_backbuffer3);
+	CGA_CopyRect(tableau_data, 208, 58, CGAW(32), 64, wseg_6_backbuffer1);
+	CGA_DrawSprite(89, 208, oorxx_pos, main_data, wseg_6_backbuffer1);
+	CGA_DrawSpriteMask(90, 208, 58, main_data, wseg_6_backbuffer1, wseg_8_backbuffer3);
+}
+
+void AnimRamp(void) {
+	uint16 y;
+	if (oorxx_ready)
+		return;
+
+	for (y = 0;y <= 58;y += 4) {
+		oorxx_pos = y;
+		Idle(1);
+		DrawOorxx();
+		CopyRectWithHand(wseg_8_backbuffer3, 208, 58, CGAW(32), 64);
+	}
+
+	Idle(1);
+	oorxx_pos -= 1;
+	DrawOorxx();
+	CopyRectWithHand(wseg_8_backbuffer3, 208, 58, CGAW(32), 64);
+	Idle(1);
+	oorxx_pos += 1;
+	DrawOorxx();
+	CopyRectWithHand(wseg_8_backbuffer3, 208, 58, CGAW(32), 64);
+
+	oorxx_ready = 1;	
+}
+
+void DrawRamp(void) {
+	if (!oorxx_ready)
+		return;
+	oorxx_pos = 58;
+	DrawOorxx();
+}
+
 bool CanDispatch(void) {
 	/*TODO*/
 	return 0;
 }
 
-void DrawSomething1(void) {
+void DrawFridge(void) {
 	if (CanDispatch()) {
 		CGA_BlitRect(wseg_0, 44, 40, CGAW(72), 70, wseg_8_backbuffer3);
 	}
 }
 
-void DrawSomething2(void) {
-	/*TODO*/
+uint16 active_buttons = 0;
+
+void DrawDashButtons(uint16 buttons) {
+
 }
+
 
 char str_buf[32];
 
@@ -105,8 +151,8 @@ void DrawTime(byte *target) {
 
 void DrawShipInterior(void) {
 	CGA_TableauToBuffer3();
-	DrawSomething1();
-	DrawSomething2();
+	DrawFridge();
+	DrawRamp();
 	CGA_Buffer3ToBuffer1();
 
 	DrawShipCoords(wseg_6_backbuffer1);
@@ -228,6 +274,11 @@ void InitGame(void) {
 	clip_sy = 160;
 	DashHand();
 
+	active_buttons = 0xE0;	/*11100000 - Save, Exterior, Galaxy*/
+	DrawDashButtons(active_buttons);
+
+	AnimRamp();
+
 for (;;) ;
 
 }
@@ -300,8 +351,25 @@ void Redraw1(void) {
 
 }
 
-void RunEvents(int ticks) {
+uint16 ticks_6_prev = 0;
 
+void Idle(int ticks) {
+	if (ticks == 0) {
+		if (ticks_6 == ticks_6_prev)
+			return;
+		UpdateHand();
+		DrawTime(frontbuffer);
+	} else {
+		uint16 now, end = ticks_6_prev + ticks; 
+		UpdateHand();
+		DrawTime(frontbuffer);
+		if (end >= ticks_6) {
+			do {
+				for (now = ticks_6;now == ticks_6;) ;
+			} while (end > ticks_6);
+		}
+	}
+	ticks_6_prev = ticks_6;
 }
 
 byte GetNextEvent(void) {
@@ -314,7 +382,7 @@ int main(int argc, char **argv) {
 	Dispatch3();
 	for (;;) {
 		byte event;
-		RunEvents(1);
+		Idle(1);
 		event = GetNextEvent();
 		switch (event) {
 		case 1:

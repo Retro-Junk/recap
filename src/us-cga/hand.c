@@ -221,3 +221,12 @@ void UndrawHand(byte *target) {
 		}
 	}
 }
+
+/*
+Copy rect from buffer to screen, with added hand image
+*/
+void CopyRectWithHand(byte *source, uint16 x, uint16 y, byte w, byte h) {
+	CGA_CopyRect(source, x, y, w, h, wseg_6_backbuffer1);
+	DrawHand(wseg_6_backbuffer1);
+	CGA_CopyRect(wseg_6_backbuffer1, x, y, w, h, frontbuffer);
+}

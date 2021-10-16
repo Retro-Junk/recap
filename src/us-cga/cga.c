@@ -107,7 +107,7 @@ void CGA_CopyRect(byte *source, uint16 x, uint16 y, byte w, byte h, byte *buffer
 	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
 	for (i = 0;i < h / 2;i++) {
 		memcpy(buffer + ofs, source + ofs, w);
-		ofs += CGA_BYTES_PER_LINE - w;
+		ofs += CGA_BYTES_PER_LINE;
 	}
 
 	/*odd lines*/
@@ -115,7 +115,7 @@ void CGA_CopyRect(byte *source, uint16 x, uint16 y, byte w, byte h, byte *buffer
 	h -= h / 2;
 	for (i = 0;i < h;i++) {
 		memcpy(buffer + ofs, source + ofs, w);
-		ofs += CGA_BYTES_PER_LINE - w;
+		ofs += CGA_BYTES_PER_LINE;
 	}
 }
 
@@ -217,6 +217,7 @@ void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target) {
 	byte sprw, sprh;
 	uint16 sprofs, maskofs, oddsofs, ofs, i, j;
 	byte *sprdata, *sprmask;
+	byte *source = wseg_8_backbuffer3;
 
 	if (x >= 320 || y >= 200)
 		return;
@@ -238,7 +239,7 @@ void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target) {
 	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
 	for (i = 0;i < sprh / 2;i++) {
 		for (j = 0;j < sprw;j++) {
-			target[ofs + j] = (target[ofs + j] & *sprmask++) | *sprdata++;
+			target[ofs + j] = (source[ofs + j] & *sprmask++) | *sprdata++;
 		}
 		ofs += CGA_BYTES_PER_LINE;
 	}
@@ -251,7 +252,7 @@ void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target) {
 	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
 	for (i = 0;i < sprh / 2;i++) {
 		for (j = 0;j < sprw;j++) {
-			target[ofs + j] = (target[ofs + j] & *sprmask++) | *sprdata++;
+			target[ofs + j] = (source[ofs + j] & *sprmask++) | *sprdata++;
 		}
 		ofs += CGA_BYTES_PER_LINE;
 	}
@@ -344,4 +345,55 @@ void CGA_DrawHandSprite(byte index, uint16 x, uint16 y, uint16 ey, byte *bank, b
 		ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
 		CGA_DrawHandSpriteLines(shift, sprh, ofs, sprdata, sprmask, wseg_8_backbuffer3, target);
 	}
+}
+
+/*
+Draw source's pixels to target, if they are not obscured by sprite
+*/
+void CGA_DrawSpriteMask(byte index, uint16 x, uint16 y, byte *bank, byte *source, byte *target) {
+	byte sprw, sprh;
+	uint16 sprofs, maskofs, oddsofs, ofs, i, j;
+	byte *sprmask;
+
+	if (x >= 320 || y >= 200)
+		return;
+
+	sprofs = bank[index * 2];
+	sprofs |= bank[index * 2 + 1] << 8;
+	if (sprofs == 0)
+		return;
+
+	sprw = bank[sprofs];
+	sprh = bank[sprofs + 1];
+	maskofs = bank[sprofs + 2] | (bank[sprofs + 3] << 8);
+	oddsofs = bank[sprofs + 4] | (bank[sprofs + 5] << 8);
+
+	/*TODO: sprw is always CGAW(32) ?*/
+	sprw = CGAW(32);
+
+#if 1
+	/*even lines*/
+	sprmask = bank + sprofs + maskofs;
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < (sprh + 1) / 2;i++) {
+		for (j = 0;j < sprw;j++) {
+			byte m = *sprmask++;
+			target[ofs + j] = (target[ofs + j] & ~m) | (source[ofs + j] & m);
+		}
+		ofs += CGA_BYTES_PER_LINE;
+	}
+#endif
+
+#if 1
+	/*odd lines*/
+	sprmask = bank + sprofs + maskofs + oddsofs;
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < sprh / 2;i++) {
+		for (j = 0;j < sprw;j++) {
+			byte m = *sprmask++;
+			target[ofs + j] = (target[ofs + j] & ~m) | (source[ofs + j] & m);
+		}
+		ofs += CGA_BYTES_PER_LINE;
+	}
+#endif
 }

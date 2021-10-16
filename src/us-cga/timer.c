@@ -5,7 +5,6 @@
 
 byte timer_reload1 = 4;
 
-uint16 ticks_6_prev = 0;
 volatile uint16 ticks_6 = 0;
 
 volatile byte timer_countdown1 = 1;

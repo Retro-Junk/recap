@@ -15,7 +15,10 @@ void DrawHand(byte *target);
 void UndrawHand(byte *target);
 void HideHand(void);
 
+void UpdateHand(void);
+
 void DrawHandInternal(byte *buffer);
 
+void CopyRectWithHand(byte *source, uint16 x, uint16 y, byte w, byte h);
 
 #endif

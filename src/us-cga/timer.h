@@ -4,6 +4,8 @@
 extern volatile uint16 ticks_min;
 extern volatile uint16 ticks_sec;
 
+extern volatile uint16 ticks_6;
+
 void InitTimerAll(void);
 void UninitTimerAll(void);
 
