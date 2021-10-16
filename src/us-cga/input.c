@@ -120,7 +120,73 @@ void ClearKeys(void) {
 }
 
 void InitMouse(void) {
+	union REGS reg;
+	have_mouse = 0;
+#ifdef __386__
+	reg.w.ax = 0;
+	int386(0x33, &reg, &reg);
+	if (reg.w.ax != 0xFFFF)
+		return;
+	have_mouse = 1;
 
+	/*set ratio*/
+	reg.w.ax = 0xF;
+	reg.w.cx = 8;
+	reg.w.dx = 16;
+	int386(0x33, &reg, &reg);
+
+	/*set x range*/
+	reg.w.ax = 7;
+	reg.w.cx = 0;
+	reg.w.dx = 640 - 1;
+	int386(0x33, &reg, &reg);
+
+	/*set y range*/
+	reg.w.ax = 8;
+	reg.w.cx = 0;
+	reg.w.dx = 200 - 1;
+	int386(0x33, &reg, &reg);
+#else
+	reg.x.ax = 0;
+	int86(0x33, &reg, &reg);
+	if (reg.x.ax != 0xFFFF)
+		return;
+	have_mouse = 1;
+
+	/*set ratio*/
+	reg.x.ax = 0xF;
+	reg.x.cx = 8;
+	reg.x.dx = 16;
+	int86(0x33, &reg, &reg);
+
+	/*set x range*/
+	reg.x.ax = 7;
+	reg.x.cx = 0;
+	reg.x.dx = 640 - 1;
+	int86(0x33, &reg, &reg);
+
+	/*set y range*/
+	reg.x.ax = 8;
+	reg.x.cx = 0;
+	reg.x.dx = 200 - 1;
+	int86(0x33, &reg, &reg);
+#endif
+}
+
+byte GetMousePos(uint16 *x, uint16 *y) {
+	union REGS reg;
+#ifdef __386__
+	reg.w.ax = 3;
+	int386(0x33, &reg, &reg);
+	*x = reg.w.cx / 2;
+	*y = reg.w.dx;
+#else
+	reg.x.ax = 3;
+	int86(0x33, &reg, &reg);
+	*x = reg.x.cx / 2;
+	*y = reg.x.dx;
+#endif
+	return reg.h.bl;    /*buttons*/
 }
 
 void SetMousePos(uint16 x, uint16 y) {

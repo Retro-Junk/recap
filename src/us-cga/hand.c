@@ -2,6 +2,7 @@
 #include "hand.h"
 #include "data.h"
 #include "input.h"
+#include "timer.h"
 #include "cga.h"
 
 uint16 prev_hand_x, prev_hand_y;
@@ -17,15 +18,89 @@ byte hand_cycle2;
 byte hand_cycle3;
 byte hand_anim;
 
+uint16 shake_time = 120;
+
+byte new_keys;
+byte press_keys;
+byte steady_hand;
+byte shake_delay_x = 1;
+byte shake_delay_y = 1;
+int shake_dx = 4;
+int shake_dy = 2;
+
 byte PollInput(uint16 *x, uint16 *y) {
-	prev_hand_x = hand_x;
-	prev_hand_y = hand_y;
+	byte butt = 0;
+	uint16 hx = hand_x;
+	uint16 hy = hand_y;
+	prev_hand_x = hx;
+	prev_hand_y = hy;
+	if (have_mouse) {
+		butt = GetMousePos(&hx, &hy);
 
-	*x = hand_x;
-	*y = hand_y;
+		if (hx < clip_sx)
+			hx = clip_sx;
+		if (hx > clip_ex)
+			hx = clip_ex;
 
-	/*TODO*/
-	return 0;
+		if (hy < clip_sy)
+			hy = clip_sy;
+		if (hy > clip_ey)
+			hy = clip_ey;
+
+		SetMousePos(hx, hy);
+
+		new_keys = 0;
+		if (butt & 1) {
+			new_keys = KF_Enter;
+			press_keys = KF_Enter;
+		}
+		if (butt & 2) {
+			butt = 1;
+			new_keys = KF_Esc;
+			press_keys = KF_Esc;
+		}
+	} else
+		new_keys = ReadKeys();
+
+	/*TODO: handle cursor move using keyboard*/
+
+	if (!steady_hand && ticks_min >= shake_time) {
+		/*shake it baby*/
+		int dx = 16;
+		int dy = 8;
+		uint16 level = ticks_min - shake_time;
+		if (level < 25) {
+			dx = 8;
+			dy = 4;
+		}
+		if (level < 20) {
+			if ((ticks_sec / 8) % 2)
+				goto dont_shake;
+		}
+
+		if (--shake_delay_x == 0) {
+			shake_delay_x = 4;
+			shake_dx = (shake_dx < 0) ? dx : -dx;
+		}
+
+		if (--shake_delay_y == 0) {
+			shake_delay_y = 5;
+			shake_dy = (shake_dy < 0) ? dy : -dy;
+		}
+
+		hx += shake_dx;
+		if (hx <= clip_sx || hx >= clip_ex)
+			hx -= shake_dx;
+
+		hy += shake_dy;
+		if (hy <= clip_sy || hy >= clip_ey)
+			hy -= shake_dy;
+	}
+
+dont_shake:
+	*x = hx;
+	*y = hy;
+	return butt;
 }
 
 void UpdateHand(void) {

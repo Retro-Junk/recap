@@ -4,6 +4,12 @@
 extern uint16 hand_x, hand_y;
 extern uint16 clip_sx, clip_ex, clip_sy, clip_ey;
 extern byte hand_cycle2;
+extern uint16 shake_time;
+
+extern byte new_keys;
+extern byte press_keys;
+extern byte steady_hand;
+
 
 void SetHandClip(void);
 void ResetHand(void);
@@ -17,6 +23,8 @@ void UndrawHand(byte *target);
 void HideHand(void);
 
 void UpdateHand(void);
+
+byte PollInput(uint16 *x, uint16 *y);
 
 void DrawHandInternal(byte *buffer);
 

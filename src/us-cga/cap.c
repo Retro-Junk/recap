@@ -428,7 +428,6 @@ void LoadSave(void) {
 }
 
 void GoExterior(void) {
-
 }
 
 void GoGalaxy(void) {
@@ -464,19 +463,19 @@ void Idle(int ticks) {
 	ticks_6_prev = ticks_6;
 }
 
-byte GetNextEvent(void) {
-	return 0;
-}
-
 int main(int argc, char **argv) {
 	InitGame();
 	RandomizeThings();
 	DrawShipCoords(frontbuffer);
 	GoExterior();
 	for (;;) {
-		byte butt;
+		int butt;
 		Idle(1);
 		butt = GetDashButton();
+#if 1
+		if (butt != -1)
+			printf("clicked button %d\n", butt);
+#endif
 		switch (butt) {
 		case 1:
 			if (CanDisintegrate()) {

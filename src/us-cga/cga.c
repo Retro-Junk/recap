@@ -356,9 +356,9 @@ void CGA_DrawHandSpriteLines(byte shift, byte h, uint16 ofs, byte *sprdata, byte
 		for (i = 0;i < h;i++) {
 			uint16 mx = 0xFF00;
 			uint16 px = 0x0000;
-			for (j = 0;j < 32 / 4 - 1;j++) {
-				mx |= *sprmask;
-				px |= *sprdata;
+			for (j = 0;j < 32 / 4;j++) {
+				mx |= *sprmask++;
+				px |= *sprdata++;
 				target[ofs + j] = (source[ofs + j] & (mx >> shift)) | (px >> shift);
 				mx <<= 8;
 				px <<= 8;
