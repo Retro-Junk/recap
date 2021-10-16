@@ -9,6 +9,7 @@
 #include "input.h"
 #include "sound.h"
 #include "hand.h"
+#include "game.h"
 
 byte ship_x;
 byte ship_y;
@@ -427,7 +428,23 @@ void LoadSave(void) {
 
 }
 
+void DrawExterior(void) {
+	CGA_CopyRect(wseg_8_backbuffer3, 0, 20, CGAW(320), 126, frontbuffer);
+}
+
 void GoExterior(void) {
+	DrawDashButtons(0xE0);
+	show_time = 0;
+
+	CGA_FillRect(0, 0, 20, CGAW(320), 126, wseg_8_backbuffer3);
+
+	/*TODO: reinit rand_seed here again*/
+
+	DrawStars(InitStarfield(320 / 2, 83, 511, 12), 0, wseg_8_backbuffer3);
+
+	/*TODO*/
+
+	DrawExterior();
 }
 
 void GoGalaxy(void) {

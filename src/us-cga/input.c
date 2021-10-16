@@ -204,8 +204,11 @@ void SetMousePos(uint16 x, uint16 y) {
 #endif
 }
 
-
 bool IsMouseClicked(void) {
+	if (have_mouse) {
+		uint16 x, y;
+		return GetMousePos(&x, &y) != 0;
+	}
 	return false;
 }
 

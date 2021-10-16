@@ -2,6 +2,7 @@
 #include "common.h"
 #include "cga.h"
 #include "data.h"
+#include "game.h"
 
 uint16 cga_screen_size = CGA_SCREEN_SIZE;
 
@@ -463,4 +464,85 @@ void CGA_DrawSpriteMask(byte index, uint16 x, uint16 y, byte *bank, byte *source
 		ofs += CGA_BYTES_PER_LINE;
 	}
 #endif
+}
+
+
+/*
+Generate random star
+*/
+void RandomStar(star_t *star) {
+	star->x = Rand();
+	star->y = Rand();
+	star->z = Rand() & 0xFFF;
+}
+
+/*
+Generate a bunch of random stars
+*/
+starfield_t *InitStarfield(uint16 ox, uint16 oy, uint16 nstars, uint16 scale) {
+	int i;
+#if 0
+	starfield_t *sf = (starfield_t *)wseg_5;	/*scratch mem, TODO: is it enough to fit all?*/
+#else
+	starfield_t *sf = (starfield_t *)wseg_6_backbuffer1;	/*FIXED: use bigger buffer*/
+#endif
+	sf->ox = ox;
+	sf->oy = oy;
+	sf->nstars = nstars;
+	sf->scale = scale;
+	for (i = 0; i < 512; i++) {
+		sf->stars[i].ofs = 0;
+		sf->stars[i].pixel = 0xFF;
+		sf->stars[i].mask = 0xFF;
+		RandomStar(&sf->stars[i]);
+	}
+	return sf;
+}
+
+/*
+Draw a frame of starfield animation and update stars
+*/
+void DrawStars(starfield_t *sf, uint16 zstep, byte *target) {
+	int i;
+	star_t *stars = sf->stars;
+	unsigned long zscale = (((unsigned long)sf->scale) << 16) | 0xFFFFu;
+	for (i = 0; i < sf->nstars; i++, stars++) {
+		short z, x, y;
+		byte pixel;
+
+		target[stars->ofs] &= stars->mask;
+		if (stars->z < zstep) {
+			RandomStar(stars);
+			stars->z |= 0x1800;
+			continue;
+		}
+
+		stars->z -= zstep;
+		z = zscale / (stars->z + 16);
+		x = ((long)z * stars->x) >> 16;
+		y = ((long)z * stars->y) >> 16;
+		y /= 2;
+
+		x += sf->ox;
+		y += sf->oy;
+		if (x < 0 || x >= 320 || y <= 20 || y >= 146) {
+			stars->z = 0;
+			continue;
+		}
+
+		stars->ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+
+		if (stars->z < 1024)
+			pixel = 3;
+		else if (stars->z < 2560)
+			pixel = 1;
+		else
+			pixel = 2;
+
+		stars->pixel = cga_pixel_colors[pixel][x % CGA_PIXELS_PER_BYTE];
+		stars->mask = cga_pixel_masks[pixel][x % CGA_PIXELS_PER_BYTE];
+
+		target[stars->ofs] &= stars->mask;
+		target[stars->ofs] |= stars->pixel;
+	}
 }

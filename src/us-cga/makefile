@@ -8,7 +8,7 @@ cap.exe: $(OBJS)
 
 scrbuff.obj: scrbuff.c
 
-cap.obj: cap.c common.h cga.h data.h
+cap.obj: cap.c common.h cga.h data.h game.h
 data.obj: data.c common.h data.h
 data2.obj: data2.c common.h data.h
 cga.obj: cga.c common.h cga.h
