@@ -213,6 +213,73 @@ void CGA_DotCrossFade(byte *source, uint16 step, byte *target) {
 	} while(ofs != 0);
 }
 
+/*
+Copy rect from source to target, using image's dimensions
+*/
+void CGA_CopyRectByImage(byte index, uint16 x, uint16 y, byte *bank, byte *source, byte *target) {
+	byte sprw, sprh;
+	uint16 sprofs;
+
+	if (x >= 320 || y >= 200)
+		return;
+
+	sprofs = bank[index * 2];
+	sprofs |= bank[index * 2 + 1] << 8;
+	if (sprofs == 0)
+		return;
+
+	sprw = bank[sprofs];
+	sprh = bank[sprofs + 1];
+
+	CGA_CopyRect(source, x, y, sprw, sprh, target);
+}
+
+/*
+Draw solid image from bank
+*/
+void CGA_DrawImage(byte index, uint16 x, uint16 y, byte *bank, byte *target) {
+	byte sprw, sprh;
+	uint16 sprofs, oddsofs, ofs, i;
+	byte *sprdata;
+
+	if (x >= 320 || y >= 200)
+		return;
+
+	sprofs = bank[index * 2];
+	sprofs |= bank[index * 2 + 1] << 8;
+	if (sprofs == 0)
+		return;
+
+	sprw = bank[sprofs];
+	sprh = bank[sprofs + 1];
+	oddsofs = bank[sprofs + 4] | (bank[sprofs + 5] << 8);
+
+#if 1
+	/*even lines*/
+	sprdata = bank + sprofs + 6;
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < sprh / 2;i++) {
+		memcpy(target + ofs, sprdata, sprw);
+		sprdata += sprw;
+		ofs += CGA_BYTES_PER_LINE;
+	}
+#endif
+
+#if 1
+	/*odd lines*/
+	sprdata = bank + sprofs + 6 + oddsofs;
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < sprh / 2;i++) {
+		memcpy(target + ofs, sprdata, sprw);
+		sprdata += sprw;
+		ofs += CGA_BYTES_PER_LINE;
+	}
+#endif
+}
+
+/*
+Draw transparent image from bank
+*/
 void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target) {
 	byte sprw, sprh;
 	uint16 sprofs, maskofs, oddsofs, ofs, i, j;

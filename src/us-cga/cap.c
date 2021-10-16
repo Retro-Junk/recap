@@ -88,8 +88,78 @@ void DrawFridge(void) {
 
 uint16 active_buttons = 0;
 
-void DrawDashButtons(uint16 buttons) {
+#define NUM_BUTTONS 10
+#define BF_80 0x80
+#define BF_1  1
 
+/*TODO: put it all in a struct?*/
+byte dash_butt_x[NUM_BUTTONS] = {  0,  48,  48,  80, 112, 144, 176, 208, 240, 240};
+byte dash_butt_y[NUM_BUTTONS] = {152, 121, 154, 166, 174, 153, 175, 166, 154, 121};
+byte butt_state[NUM_BUTTONS]  = {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0};
+byte butt_delay[NUM_BUTTONS]  = {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0};
+byte butt_phase[NUM_BUTTONS]  = {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0};
+
+void DrawDashButton(byte n) {
+	byte on;
+	if (--butt_delay[n] != 0)
+		return;
+	butt_delay[n] = 1;
+
+	if (--butt_phase[n] == 0) {
+		butt_state[n] &= BF_1;
+		on = butt_state[n] & 1;
+		if (on == 0)
+			return;
+	} else
+		on = butt_phase[n] & 1;
+
+	DrawImageWithHand(7 + n * 2 + on, dash_butt_x[n], dash_butt_y[n], main_data);
+}
+
+void DrawDashButtons(uint16 buttons) {
+	byte anim_delay, anim_count, num_draw, num_anim;
+	int i;
+    ClearKeys();
+
+	/*sync buttons state*/
+	for (i = NUM_BUTTONS - 1;i >= 0;i--, buttons >>= 1) {
+		if (buttons & 1) {
+			if (butt_state[i] != 1) {
+				butt_state[i] = BF_80 | BF_1;
+				butt_delay[i] = 1;
+				butt_phase[i] = 6;
+			}
+		} else {
+			if (butt_state[i] != 0) {
+				butt_state[i] = BF_80;
+				butt_delay[i] = 1;
+				butt_phase[i] = 5;
+			}
+		}
+	}
+
+	/*update buttons with ripple effect*/
+	anim_delay = 3;
+	anim_count = 1;
+	do {
+		Idle(1);
+		if (--anim_delay == 0) {
+			anim_delay = 3;
+			if (anim_count != 4)
+				anim_count++;
+		}
+		num_draw = 0;
+		num_anim = anim_count;
+
+		for (i = 0;i < NUM_BUTTONS;i++) {
+			if (butt_state[i] & BF_80) {
+				DrawDashButton(i);
+				num_draw++;
+				if (--num_anim == 0)
+					break;
+			}
+		}
+	} while (num_draw != 0);
 }
 
 

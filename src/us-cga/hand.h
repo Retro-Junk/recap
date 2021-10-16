@@ -20,5 +20,6 @@ void UpdateHand(void);
 void DrawHandInternal(byte *buffer);
 
 void CopyRectWithHand(byte *source, uint16 x, uint16 y, byte w, byte h);
+void DrawImageWithHand(byte index, uint16 x, uint16 y, byte *bank);
 
 #endif

@@ -230,3 +230,13 @@ void CopyRectWithHand(byte *source, uint16 x, uint16 y, byte w, byte h) {
 	DrawHand(wseg_6_backbuffer1);
 	CGA_CopyRect(wseg_6_backbuffer1, x, y, w, h, frontbuffer);
 }
+
+/*
+Draw image to buffer, add hand image then show image to screen
+*/
+void DrawImageWithHand(byte index, uint16 x, uint16 y, byte *bank) {
+	CGA_DrawImage(index, x, y, bank, wseg_8_backbuffer3);
+	CGA_DrawImage(index, x, y, bank, wseg_6_backbuffer1);
+	DrawHand(wseg_6_backbuffer1);
+	CGA_CopyRectByImage(index, x, y, bank, wseg_6_backbuffer1, frontbuffer);
+}
