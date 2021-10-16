@@ -75,13 +75,13 @@ void DrawRamp(void) {
 	DrawOorxx();
 }
 
-bool CanDispatch(void) {
+bool CanDisintegrate(void) {
 	/*TODO*/
 	return 0;
 }
 
 void DrawFridge(void) {
-	if (CanDispatch()) {
+	if (CanDisintegrate()) {
 		CGA_BlitRect(wseg_0, 44, 40, CGAW(72), 70, wseg_8_backbuffer3);
 	}
 }
@@ -162,6 +162,30 @@ void DrawDashButtons(uint16 buttons) {
 	} while (num_draw != 0);
 }
 
+int GetDashButton(void) {
+	int i;
+	byte x, y;
+	if (hand_cycle2 == 0)
+		return -1;
+	x = (hand_x + 2) /  2;
+	y = (hand_y + 2);
+
+	for (i = NUM_BUTTONS - 1;i >= 0;i--) {
+		if (butt_state[i] != 1)
+			continue;
+
+		if ((x < dash_butt_x[i] / 2) || (x >= dash_butt_x[i] / 2 + 32 / 2))
+			continue;
+
+		if ((y < dash_butt_y[i]) || (y >= dash_butt_y[i] + 24))
+			continue;
+
+		return i;		
+	}
+
+	/*TODO: pass hand_cycle2 state somehow*/
+	return -1;
+}
 
 char str_buf[32];
 
@@ -337,6 +361,7 @@ void InitGame(void) {
 
 	ticks_min = 0;
 	ticks_sec = 0;
+	oorxx_ready = 0;
 	
 	DrawShipInterior();
 
@@ -348,9 +373,6 @@ void InitGame(void) {
 	DrawDashButtons(active_buttons);
 
 	AnimRamp();
-
-for (;;) ;
-
 }
 
 unsigned long rand_seed = 0;
@@ -397,27 +419,27 @@ again:
 
 }
 
-void Dispatch1(void) {
+void Disintegrate(void) {
 
 }
 
-void Dispatch2(void) {
+void LoadSave(void) {
 
 }
 
-void Dispatch3(void) {
+void GoExterior(void) {
 
 }
 
-void Dispatch4(void) {
+void GoGalaxy(void) {
 
 }
 
-void Dispatch9(void) {
+void Reactivate(void) {
 
 }
 
-void Redraw1(void) {
+void AnimDisintegrate(void) {
 
 }
 
@@ -449,29 +471,30 @@ byte GetNextEvent(void) {
 int main(int argc, char **argv) {
 	InitGame();
 	RandomizeThings();
-	Dispatch3();
+	DrawShipCoords(frontbuffer);
+	GoExterior();
 	for (;;) {
-		byte event;
+		byte butt;
 		Idle(1);
-		event = GetNextEvent();
-		switch (event) {
+		butt = GetDashButton();
+		switch (butt) {
 		case 1:
-			if (CanDispatch()) {
-				Dispatch1();
-				Redraw1();
+			if (CanDisintegrate()) {
+				Disintegrate();
+				AnimDisintegrate();
 			}
 			break;
 		case 2:
-			Dispatch2();
+			LoadSave();
 			break;
 		case 3:
-			Dispatch3();
+			GoExterior();
 			break;
 		case 4:
-			Dispatch4();
+			GoGalaxy();
 			break;
 		case 9:
-			Dispatch9();
+			Reactivate();
 			break;
 		}
 	}
