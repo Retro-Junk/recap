@@ -7,4 +7,5 @@ timer.obj+
 input.obj+
 hand.obj+
 sound.obj+
+planet.obj+
 cap.obj

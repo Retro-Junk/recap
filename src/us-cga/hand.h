@@ -6,6 +6,8 @@ extern uint16 clip_sx, clip_ex, clip_sy, clip_ey;
 extern byte hand_cycle2;
 extern uint16 shake_time;
 
+extern byte hand_visible;
+
 extern byte new_keys;
 extern byte press_keys;
 extern byte steady_hand;

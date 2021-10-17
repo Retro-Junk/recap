@@ -10,6 +10,7 @@
 #include "sound.h"
 #include "hand.h"
 #include "game.h"
+#include "planet.h"
 
 byte ship_x;
 byte ship_y;
@@ -163,11 +164,14 @@ void DrawDashButtons(uint16 buttons) {
 	} while (num_draw != 0);
 }
 
+#define NoButton (-1)
+#define NotClicked (-2)
+
 int GetDashButton(void) {
 	int i;
 	byte x, y;
 	if (hand_cycle2 == 0)
-		return -1;
+		return NotClicked;
 	x = (hand_x + 2) /  2;
 	y = (hand_y + 2);
 
@@ -184,8 +188,11 @@ int GetDashButton(void) {
 		return i;		
 	}
 
-	/*TODO: pass hand_cycle2 state somehow*/
-	return -1;
+#if 0
+	/*this looks redundant*/
+	return (hand_cycle2 == 0) ? NotClicked : NoButton;
+#endif
+	return NoButton;
 }
 
 char str_buf[32];
@@ -258,6 +265,38 @@ void DrawShipInterior(void) {
 	DrawHand(wseg_6_backbuffer1);
 
 	CGA_Buffer1ToScreen();
+}
+
+void DrawShipInteriorPartial(uint16 x, uint16 y, byte w, byte h) {
+	CGA_CopyRect(tableau_data, x, y, w, h, wseg_8_backbuffer3);
+	DrawFridge();
+	DrawRamp();
+	DrawShipCoords(wseg_8_backbuffer3);
+	show_time = 1;
+	last_time_draw = ~0u;
+	DrawTime(wseg_8_backbuffer3);
+	CopyRectWithHand(wseg_8_backbuffer3, x, y, w, h);
+}
+
+
+void GoInterior(void) {
+	DrawShipInteriorPartial(0, 17, CGAW(320), 134);
+	DrawDashButtons(active_buttons);
+	SetHandClip();
+	if (!hand_visible)
+		DashHand();
+	DrawShipCoords(frontbuffer);
+	show_time = 1;
+	last_time_draw = ~0u;
+	DrawTime(frontbuffer);
+	AnimRamp();	
+}
+
+void BackToShip(void) {
+	active_buttons = (active_buttons & 0x100) | 0xE0;
+	if (IsRecentPlanet())
+		active_buttons |= 1; 
+	GoInterior();
 }
 
 void InitGame(void) {
@@ -387,28 +426,43 @@ byte RandByte(void) {
 	return Rand() >> 8;
 }
 
-uint16 rand_seq[64][2];
+planet_t planets[64];
+coords_t recent_planets[128];
+coords_t destroyed_panets[256];
 
-void RandomizeThings(void) {
+byte in_exterior = 0;
+uint16 num_destroyed;
+uint16 total_destroyed;
+uint16 current_alien;
+uint16 current_alien_img;
+byte planet_flag;
+int num_recent;
+uint16 last_alien_img;
+
+void RandomizeGalaxy(void) {
 	int i, j;
-	uint16 r;
 	rand_seed = 1234;	/*TODO: this is initialized from random memory*/
 
 	for (i = 0;i < 64;i++) {
+		byte x, y;
 again:
-		r = RandByte();
-		r |= (RandByte() & 0x7F) << 8;
-		rand_seq[i][0] = r;
-		rand_seq[i][1] = r;
+		x = RandByte();
+		y = RandByte() & ~PLF_80;
+
+		planets[i].coords1.x = x;
+		planets[i].coords1.y = y;
+		planets[i].coords2.x = x;
+		planets[i].coords2.y = y;
+
 		for (j = 0;j < i;j++) {
-			if (rand_seq[j][0] == r)
+			if (planets[j].coords1.x == x && planets[j].coords1.x == y)
 				goto again;
 		}
 	}
 
-	r = rand_seq[(RandByte() % 4) * 2][0];
-	ship_x = r & 255;
-	ship_y = r >> 8;
+	i = (RandByte() % 4) * 4;
+	ship_x = planets[i].coords1.x;
+	ship_y = planets[i].coords1.y;
 
 	for (i = 40;i <= 49;i++) {
 		SetBit(i);
@@ -416,9 +470,57 @@ again:
 
 	ClrBit(999);
 
-	
-
+	total_destroyed = 0;
+	num_destroyed = 0;
+	num_recent = 0;
+	last_alien_img = 0xFFFF;
 }
+
+void MarkRecent(void) {
+	recent_planets[num_recent].x = ship_x;
+	recent_planets[num_recent].y = ship_y;
+	num_recent++;
+	if (num_recent >= 128)
+		num_recent = 0;
+}
+
+bool IsRecentPlanet(void) {
+	int i;
+	for (i = 0;i < num_recent;i++) {
+		if (recent_planets[i].x == ship_x && recent_planets[i].y == ship_y)
+			return true;
+	}
+	return false;
+}
+
+bool IsPlanetHere(void) {
+	int i;
+	current_alien = 0xFFFF;
+	current_alien_img = 0xFFFF;
+	planet_flag = 0;
+	for (i = 0;i < num_destroyed;i++) {
+		if (destroyed_panets[i].x == ship_x && destroyed_panets[i].y == ship_y)
+			return false;
+	}
+
+	for (i = 0;i < 64;i++) {
+		if (planets[i].coords2.x == ship_x && planets[i].coords2.y == ship_y) {
+			current_alien = i;
+			current_alien_img = i / 4;
+			ClrBit100(i, 2);
+			if (planets[i].coords1.x == ship_x && planets[i].coords1.y == ship_y)
+				SetBit100(i, 2);
+			if (GetBit100(i, 4))
+				planet_flag = 1;
+			return true;
+		}
+	}
+
+	planet_flag = ship_x & 1;
+	return true;
+}
+
+
 
 void Disintegrate(void) {
 
@@ -551,20 +653,91 @@ void DrawExterior(void) {
 	CGA_CopyRect(wseg_8_backbuffer3, 0, 20, CGAW(320), 126, frontbuffer);
 }
 
+void DestoryPlanet(void) {
+	/*TODO*/
+}
+
+void DoPhoto(void) {
+	/*TODO*/
+}
+
+void DoContact(void) {
+	/*TODO*/
+}
+
+void DoExterior(void) {
+	int butt;
+	uint16 old_butt;
+
+	if (!IsPlanetHere()) {
+		DrawExterior();
+on_destroyed:
+		DrawDashButtons(0);
+		do {
+			Idle(0);
+		} while (GetDashButton() == NotClicked);
+		active_buttons = (active_buttons & 0x100) | 0xE0;
+		GoInterior();
+		return;
+	}
+
+	DrawExterior();
+	DrawDashButtons(0xE);
+
+	PlanetPreInit();
+	PlanetInit();
+	if (!in_exterior) {
+		in_exterior++;
+		do {
+			Idle(2);
+		} while (!PlanetFrame());
+		/*TODO: some unreachable code here*/
+	}
+
+	/*buttons loop*/
+	for (;;) {
+		do {
+			PlanetFrameFastCalc();
+			Idle(0);
+			butt = GetDashButton();
+			PlanetFrameFastDraw(frontbuffer);
+			if (butt != NotClicked)
+				break;
+			Idle(0);
+			butt = GetDashButton();
+		} while (butt == NotClicked);
+
+		switch (butt) {
+		case 6:	/*contact*/
+			old_butt = active_buttons;
+			active_buttons = 0;
+			GoInterior();
+			active_buttons = old_butt;
+			DoContact();
+			return;
+		case 7: /*destroy*/
+			DestoryPlanet();
+			goto on_destroyed;
+		case 8: /*photo*/
+			DoPhoto();
+			continue;
+		case NoButton:
+			BackToShip();
+			return;
+		}
+	}
+}
+
 void GoExterior(void) {
 	DrawDashButtons(0xE0);
 	show_time = 0;
 	DrawRippleAndBorders();
-
 	CGA_FillRect(0, 0, 20, CGAW(320), 126, wseg_8_backbuffer3);
 
 	/*TODO: reinit rand_seed here again*/
-
 	DrawStars(InitStarfield(320 / 2, 83, 511, 12), 0, wseg_8_backbuffer3);
 
-	/*TODO*/
-
-	DrawExterior();
+	DoExterior();
 }
 
 void GoGalaxy(void) {
@@ -602,15 +775,16 @@ void Idle(int ticks) {
 
 int main(int argc, char **argv) {
 	InitGame();
-	RandomizeThings();
+	RandomizeGalaxy();
 	DrawShipCoords(frontbuffer);
+	in_exterior++;
 	GoExterior();
 	for (;;) {
 		int butt;
 		Idle(1);
 		butt = GetDashButton();
 #if 1
-		if (butt != -1)
+		if (butt != NotClicked)
 			printf("clicked button %d\n", butt);
 #endif
 		switch (butt) {
