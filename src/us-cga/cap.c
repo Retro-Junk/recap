@@ -428,6 +428,125 @@ void LoadSave(void) {
 
 }
 
+
+/*
+Draw 3-color band
+*/
+void DrawThreeLines(uint16 sx, uint16 sy, uint16 ex, uint16 ey, byte *buffer) {
+	CGA_HLine(sx, sy,     ex, 3, buffer);
+	CGA_HLine(sx, sy - 1, ex, 2, buffer);
+	CGA_HLine(sx, sy + 1, ex, 1, buffer);
+}
+
+/*
+Erase 3-color band
+*/
+void ClearThreeLines(uint16 sx, uint16 sy, uint16 ex, uint16 ey, byte *buffer) {
+	CGA_HLine(sx, sy,     ex, 0, buffer);
+	CGA_HLine(sx, sy - 1, ex, 0, buffer);
+	CGA_HLine(sx, sy + 1, ex, 0, buffer);
+}
+
+/*
+Draw 3-pixels high oscilating line
+*/
+void WavyLine(uint16 x, uint16 y, uint16 w, byte color, byte *buffer) {
+	uint16 i;
+	byte prev = 1;
+	ClearThreeLines(x, y, x + w - 1, y, buffer);
+
+	for (i = 0;i < w;i++) {
+		char dy = (RandByte() % 4) - 2;
+		if (dy == -2)
+			dy = 0;
+		/* 0, -1, 0, 1 */
+
+		if (prev + dy > 2) {
+			dy = -dy;
+		}
+		prev += dy;
+
+		CGA_PutPixel(x + i, y + dy, color, buffer);
+	}
+}
+
+void WavyBorder(uint16 x, uint16 y1, uint16 y2, uint16 w, byte color, byte *buffer) {
+	int i;
+
+	for (i = 0;i < 3;i++) {
+		WavyLine(x, y1, w, color, buffer);
+		WavyLine(x, y2, w, color, buffer);
+		Idle(1);
+	}
+
+	ClearThreeLines(x, y1, x + w - 1, y1, buffer);
+	ClearThreeLines(x, y2, x + w - 1, y2, buffer);
+}
+
+void XorTwoPixels(uint16 x, uint16 y, byte color, byte *buffer) {
+	if (x >= 320 - 1 || y < 20 || y >= 146)
+		return;
+	CGA_XorPixel(x, y, color, buffer);
+	CGA_XorPixel(x + 1, y, color, buffer);
+}
+
+void DrawCirclePixels(uint16 x, uint16 y, uint16 d1, uint16 d2, byte color, byte *buffer) {
+	XorTwoPixels(x + d1 * 2, y + d2, color, buffer);
+	XorTwoPixels(x - d1 * 2, y + d2, color, buffer);
+	XorTwoPixels(x - d1 * 2, y - d2, color, buffer);
+	XorTwoPixels(x + d1 * 2, y - d2, color, buffer);
+
+	XorTwoPixels(x + d2 * 2, y + d1, color, buffer);
+	XorTwoPixels(x - d2 * 2, y + d1, color, buffer);
+	XorTwoPixels(x - d2 * 2, y - d1, color, buffer);
+	XorTwoPixels(x + d2 * 2, y - d1, color, buffer);
+}
+
+/*
+Draw a circle using Bresenham’s algorithm
+*/
+void DrawCircle(uint16 xc, uint16 yc, uint16 r, byte color, byte *buffer) {
+	uint16 rr = xc * r;
+	uint16 r1 = rr;
+	uint16 r2 = 0;
+	uint16 d1 = r;
+	uint16 d2 = 0;
+	for (;;) {
+		DrawCirclePixels(xc, yc, d1, d2, color, buffer);
+		if (d1 < d2)
+			break;
+		r2 += d2 * 2;
+		r2 += 1;
+		d2 += 1;
+		if (r1 + r2 >= rr) {
+			r1 -= d1 * 2;
+			r1 += 1;
+			d1 -= 1;
+		}		
+	}
+}
+
+void ThreeCirclesRipple(byte *buffer) {
+	int i;
+	for (i = 10;i < 100;i += 20) {
+		DrawCircle(160, 82, i + 0, 3, buffer);
+		DrawCircle(160, 82, i + 2, 3, buffer);
+		DrawCircle(160, 82, i + 4, 3, buffer);
+		Idle(1);
+		DrawCircle(160, 82, i + 0, 3, buffer);
+		DrawCircle(160, 82, i + 2, 3, buffer);
+		DrawCircle(160, 82, i + 4, 3, buffer);
+	}
+}
+
+void DrawRippleAndBorders(void) {
+	clip_sy = 149;
+	ThreeCirclesRipple(frontbuffer);
+	WavyBorder(0, 18, 147, 320, 3, frontbuffer);
+	DrawThreeLines(0,  18, 319,  18, frontbuffer);
+	DrawThreeLines(0, 147, 319, 147, frontbuffer);
+}
+
 void DrawExterior(void) {
 	CGA_CopyRect(wseg_8_backbuffer3, 0, 20, CGAW(320), 126, frontbuffer);
 }
@@ -435,6 +554,7 @@ void DrawExterior(void) {
 void GoExterior(void) {
 	DrawDashButtons(0xE0);
 	show_time = 0;
+	DrawRippleAndBorders();
 
 	CGA_FillRect(0, 0, 20, CGAW(320), 126, wseg_8_backbuffer3);
 

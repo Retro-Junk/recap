@@ -79,4 +79,10 @@ typedef struct starfield_t {
 starfield_t *InitStarfield(uint16 ox, uint16 oy, uint16 nstars, uint16 scale);
 void DrawStars(starfield_t *sf, uint16 zstep, byte *target);
 
+
+void CGA_HLine(uint16 sx, uint16 sy, uint16 ex, byte color, byte *buffer);
+
+void CGA_PutPixel(uint16 x, uint16 y, byte color, byte *buffer);
+void CGA_XorPixel(uint16 x, uint16 y, byte color, byte *buffer);
+
 #endif

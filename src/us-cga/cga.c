@@ -546,3 +546,30 @@ void DrawStars(starfield_t *sf, uint16 zstep, byte *target) {
 		target[stars->ofs] |= stars->pixel;
 	}
 }
+
+void CGA_PutPixel(uint16 x, uint16 y, byte color, byte *buffer) {
+	uint16 ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	buffer[ofs] &= cga_pixel_masks[color][x % CGA_PIXELS_PER_BYTE];
+	buffer[ofs] |= cga_pixel_colors[color][x % CGA_PIXELS_PER_BYTE];
+}
+
+void CGA_XorPixel(uint16 x, uint16 y, byte color, byte *buffer) {
+	uint16 ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	buffer[ofs] ^= cga_pixel_colors[color][x % CGA_PIXELS_PER_BYTE];
+}
+
+/*
+Draw a horizontal line
+*/
+void CGA_HLine(uint16 sx, uint16 sy, uint16 ex, byte color, byte *buffer) {
+	uint16 t;
+	if (sx > ex) {
+		t = sx;
+		sx = ex;
+		ex = t;
+	}
+
+	for (t = 0;t < ex - sx + 1;t++) {
+		CGA_PutPixel(sx + t, sy, color, buffer);
+	}
+}
