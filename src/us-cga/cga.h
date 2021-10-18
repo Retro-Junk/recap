@@ -53,7 +53,7 @@ void CGA_CopyRectByImage(byte index, uint16 x, uint16 y, byte *bank, byte *sourc
 void CGA_DrawImage(byte index, uint16 x, uint16 y, byte *bank, byte *target);
 void CGA_DrawSprite(byte index, uint16 x, uint16 y, byte *bank, byte *target);
 
-void PrintString(uint16 x, uint16 y, char *str, byte *target);
+uint16 PrintString(uint16 x, uint16 y, char *str, byte *target);
 
 void CGA_DrawHandSprite(byte index, uint16 x, uint16 y, uint16 ey, byte *bank, byte *target);
 
@@ -80,6 +80,7 @@ starfield_t *InitStarfield(uint16 ox, uint16 oy, uint16 nstars, uint16 scale);
 void DrawStars(starfield_t *sf, uint16 zstep, byte *target);
 
 
+void CGA_Line(uint16 sx, uint16 sy, uint16 ex, uint16 ey, byte color, byte *buffer);
 void CGA_HLine(uint16 sx, uint16 sy, uint16 ex, byte color, byte *buffer);
 
 void CGA_PutPixel(uint16 x, uint16 y, byte color, byte *buffer);

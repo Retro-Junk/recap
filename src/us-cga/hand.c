@@ -315,3 +315,10 @@ void DrawImageWithHand(byte index, uint16 x, uint16 y, byte *bank) {
 	DrawHand(wseg_6_backbuffer1);
 	CGA_CopyRectByImage(index, x, y, bank, wseg_6_backbuffer1, frontbuffer);
 }
+
+void PrintStringWithHand(uint16 x, uint16 y, char *str) {
+	uint16 ex = PrintString(x, y, str, wseg_8_backbuffer3);
+	CGA_CopyRect(wseg_8_backbuffer3, x, y, CGAW(ex - x), 8, wseg_6_backbuffer1);
+	DrawHand(wseg_6_backbuffer1);
+	CGA_CopyRect(wseg_6_backbuffer1, x, y, CGAW(ex - x), 8, frontbuffer);
+}

@@ -333,13 +333,17 @@ void PrintChar(byte c, uint16 x, uint16 y, byte *target) {
 	CGA_DrawSprite(c - ' ' + 27, x, y, main_data, target);
 }
 
-void PrintString(uint16 x, uint16 y, char *str, byte *target) {
+/*
+Print a string, return next x coordinate
+*/
+uint16 PrintString(uint16 x, uint16 y, char *str, byte *target) {
 	char c;
 	while ((c = *str++) != 0) {
 		if (c != 1)
 			PrintChar(c, x, y, target);
 		x += 8;
 	}
+	return x;
 }
 
 void CGA_DrawHandSpriteLines(byte shift, byte h, uint16 ofs, byte *sprdata, byte *sprmask, byte *source, byte *target) {
@@ -556,6 +560,27 @@ void CGA_PutPixel(uint16 x, uint16 y, byte color, byte *buffer) {
 void CGA_XorPixel(uint16 x, uint16 y, byte color, byte *buffer) {
 	uint16 ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
 	buffer[ofs] ^= cga_pixel_colors[color][x % CGA_PIXELS_PER_BYTE];
+}
+
+/*
+Draw a line between two points 
+*/
+void CGA_Line(uint16 sx, uint16 sy, uint16 ex, uint16 ey, byte color, byte *buffer) {
+	int w = ex - sx;
+	int h = ey - sy;
+	byte flags = 0;
+	if (w < 0) {
+		w = -w;
+		flags |= 1;
+	}
+
+	if (h < 0) {
+		h = -h;
+		flags |= 2;
+	}
+
+
+
 }
 
 /*

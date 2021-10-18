@@ -3,6 +3,7 @@
 
 extern uint16 hand_x, hand_y;
 extern uint16 clip_sx, clip_ex, clip_sy, clip_ey;
+extern uint16 delta_x, delta_y;
 extern byte hand_cycle2;
 extern uint16 shake_time;
 
@@ -32,5 +33,6 @@ void DrawHandInternal(byte *buffer);
 
 void CopyRectWithHand(byte *source, uint16 x, uint16 y, byte w, byte h);
 void DrawImageWithHand(byte index, uint16 x, uint16 y, byte *bank);
+void PrintStringWithHand(uint16 x, uint16 y, char *str);
 
 #endif

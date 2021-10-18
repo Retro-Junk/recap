@@ -197,7 +197,7 @@ int GetDashButton(void) {
 
 char str_buf[32];
 
-void IntToStr(uint16 value, byte width, char *buffer) {
+char *IntToStr(uint16 value, byte width, char *buffer) {
 #if 0
 	uint16 i;
 	uint16 base = 1;
@@ -216,8 +216,9 @@ void IntToStr(uint16 value, byte width, char *buffer) {
 		base /= 10;
 	}	
 	*buffer = 0;
+	return buffer;
 #else
-	sprintf((char*)buffer, "%*u", width, value);
+	return buffer + sprintf((char*)buffer, "%*u", width, value);
 #endif
 }
 
@@ -728,6 +729,9 @@ on_destroyed:
 	}
 }
 
+/*
+Draw and handle planet screen
+*/
 void GoExterior(void) {
 	DrawDashButtons(0xE0);
 	show_time = 0;
@@ -740,8 +744,175 @@ void GoExterior(void) {
 	DoExterior();
 }
 
-void GoGalaxy(void) {
+void HyperWarp(void) {
+	/*TODO: neato gfx*/
+	printf("TODO: HyperWarp\n");
+}
 
+uint16 galaxy_delay = 0;
+uint16 prev_galaxy_x;
+uint16 prev_galaxy_y;
+uint16 galaxy_curs_x;
+uint16 galaxy_curs_y;
+uint16 galaxy_ship_x;
+uint16 galaxy_ship_y;
+
+/*
+Draw galaxy screen
+*/
+void DrawGalaxy(void) {
+	uint16 sx, sy, ex, ey;
+	char *p;
+	CGA_BlitRect(galax_data, 0, 20, CGAW(320), 128, wseg_8_backbuffer3);
+
+	sx = galaxy_ship_x + 33;
+	sy = 20;
+	ex = sx;
+	ey = 147;
+	if (sx < 87 || sx > 235) {
+		/*skip line segment obscured by coordinates window*/
+		CGA_Line(sx, sy, ex, 22, 3, wseg_8_backbuffer3);
+		CGA_Line(sx, 39, ex, 147, 3, wseg_8_backbuffer3);
+	} else
+		CGA_Line(sx, sy, ex, ey, 3, wseg_8_backbuffer3);
+
+
+	sx = 0;
+	sy = galaxy_ship_y + 20;
+	ex = 320;
+	ey = sy;
+	if (sy > 22 && sy < 39) {
+		/*skip line segment obscured by coordinates window*/
+		CGA_HLine(87, sy, 235, 3, wseg_8_backbuffer3);
+	} else
+		CGA_HLine(sx, sy, ex, 3, wseg_8_backbuffer3);
+
+	/*selected point coords*/
+	p = IntToStr(galaxy_curs_x, 3, str_buf);
+	*p++ = 1;	
+	IntToStr(galaxy_curs_y, 3, str_buf);
+	PrintString(8, 28, str_buf, wseg_8_backbuffer3);
+
+	/*our ship coords*/
+	p = IntToStr(galaxy_ship_x, 3, str_buf);
+	*p++ = 1;	
+	IntToStr(galaxy_ship_y, 3, p);
+	PrintString(240, 28, str_buf, wseg_8_backbuffer3);
+
+	CopyRectWithHand(wseg_8_backbuffer3, 0, 20, CGAW(320), 128);
+}
+
+/*
+Draw and handle galaxy screen
+*/
+void GoGalaxy(void) {
+	char *p;
+	int butt;
+	int dist_x, dist_y;
+	DrawDashButtons(0x10);
+	HideHand();
+	show_time = 0;
+	ThreeCirclesRipple(frontbuffer);
+	WavyBorder(0, 18, 149, 320, 3, frontbuffer);
+	DrawThreeLines(0,  18, 319,  18, frontbuffer);
+	DrawThreeLines(0, 149, 319, 149, frontbuffer);
+	DrawThreeLines(0,  18, 319,  18, wseg_8_backbuffer3);
+	DrawThreeLines(0, 149, 319, 149, wseg_8_backbuffer3);
+	clip_sy = 19;
+	FreeHand();
+	galaxy_ship_x = ship_x;
+	galaxy_ship_y = ship_y;
+	DrawGalaxy();
+	for (;;) {
+		Idle(1);
+		if (hand_y >= 147) {
+			/*in dash area*/
+			delta_x = 8;
+			delta_y = 4;
+			galaxy_delay = 0;
+		} else {
+			if (hand_x == prev_galaxy_x && hand_y == prev_galaxy_y) {
+				galaxy_delay = 15;
+				delta_x = 1;
+				delta_y = 1;
+			} else {
+				prev_galaxy_x = hand_x;
+				prev_galaxy_y = hand_y;
+				if (galaxy_delay != 0) {
+					if (--galaxy_delay <= 8) {
+						if (delta_x < 8)
+							delta_x++;
+						if (delta_y < 4)
+							delta_y++;
+					}
+				}
+			}
+			if (hand_x >= 33 && hand_x <= (33 + 255))
+				galaxy_curs_x = hand_x - 33;
+			else
+				galaxy_curs_x = 0;
+
+			p = IntToStr(galaxy_curs_x, 3, str_buf);
+			*p++ = 1;	/*blank to skip over bg slash*/
+
+			if (hand_y >= 19 && hand_y <= (19 + 127))
+				galaxy_curs_y = hand_y - 19;
+			else
+				galaxy_curs_y = 0;
+
+			IntToStr(galaxy_curs_y, 3, p);
+
+			PrintStringWithHand(8, 28, str_buf);
+		}
+
+		butt = GetDashButton();
+		if (butt == NotClicked)
+			continue;
+
+		if (butt == 5)	/*hyper warp*/
+			break;
+
+		if (hand_y > 147) {
+			/*dash area - back to ship*/
+			HideHand();
+			GoInterior();
+			return;
+		}
+
+		/*move axis closest to the cursor*/
+		dist_x = galaxy_curs_x - galaxy_ship_x;
+		if (dist_x < 0)
+			dist_x = -dist_x;
+
+		dist_y = galaxy_curs_y - galaxy_ship_y;
+		if (dist_y < 0)
+			dist_y = -dist_y;
+
+		if (dist_x <= dist_y)
+			galaxy_ship_x = galaxy_curs_x;
+		else
+			galaxy_ship_y = galaxy_curs_y;
+		DrawGalaxy();
+	}
+
+	/*hyper warp*/
+	if (galaxy_ship_x == ship_x && galaxy_ship_y == ship_y) {
+		HideHand();
+		GoInterior();
+		return;
+	}
+
+	HideHand();
+	DrawShipInteriorPartial(17, 0, CGAW(320), 134);
+	clip_sy = 100;
+	DashHand();
+	HyperWarp();
+	ship_x = galaxy_ship_x;
+	ship_y = galaxy_ship_y;
+	DrawShipCoords(frontbuffer);
+
+	in_exterior = 0;
+	DoExterior();
 }
 
 void Reactivate(void) {
