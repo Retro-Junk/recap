@@ -9,11 +9,207 @@ void DoMyPhrase(void) {
 }
 
 
+void DrawMouth(void) {
+	if (--mouth_delay != 0)
+		return;
+	mouth_delay = 8;
+
+	if (!mouth_animate && mouth_cycle == 0)
+			return;
+
+	mouth_cycle ^= 1;
+
+	DrawImageWithHand(86 + mouth_cycle, 144, 107, main_data);
+}
+
+void DrawUpcomBackground(void) {
+	/*TODO*/
+}
+
+/*
+Get hand's hotspot coordinates
+*/
 void GetFingerPos(uint16 *x, uint16 *y) {
 	*x = hand_x + 3;
 	*y = hand_y + 1;
 }
 
+/*
+Draw icon by its index, with enabled/disabled recolor
+*/
+void DrawIcon(uint16 index, uint16 x, unt16 y, byte *buffer) {
+	byte color = (logic->dic.icon_flags[index] & 0x80) ? 0xAA : 0xFF;
+	/*
+		iko canvas is 256xY pixels, that's 32xN of 16x19 icons
+		a line of icons occupy (32 * 16 * 19 / 4) = 2432 bytes
+	*/
+	byte *shape = logic->iko + (index / 32) * (32 * CGAW(16)*19) + (index % 32) * CGAW(16);
+	CGA_BlitCanvasRectRecolor(shape, 256, color, x, y, CGAW(16), 19, buffer);
+}
+
+/*
+Draw column of two icons for the palette
+*/
+void DrawIconsColumn(uint16 index, uint16 x, unt16 y, byte *buffer) {
+	DrawIcon(index,     x, y,      buffer);
+	DrawIcon(index + 1, x, y + 19, buffer);
+}
+
+/*
+Draw two rows of icons, with respect to scrolling position
+*/
+void DrawIconsPalette(void) {
+	int i;
+	uint16 index, x;
+	DrawIconsScroller();
+	icons_base = 0;
+	index = scroll_pos;
+	x = 48;
+	for (i = 0;i < 14;i++) {
+		DrawIconsColumn(index, x, 137, wseg_8_backbuffer3);
+		index += 2;
+		x += 16;
+	}
+	ShowIconsPalette();
+}
+
+/*
+Copy icons palette from backbuffer to screen
+*/
+void ShowIconsPalette(void) {
+	CopyRectWithHand(wseg_8_backbuffer3, 48, 137, CGAW(224), 38);
+}
+
+/*
+Draw icons list scroll bar slider
+*/
+void DrawIconsScroller(void) {
+	uint16 newpos = (scroll_pos * 3 / 2) & ~3;
+	if (newpos == last_scroll_pos)
+		return;
+	/*restore old background under the scroller*/
+	CGA_CopyRect(tableau_data, 72 + last_scroll_pos, 191, CGAW(40), 6, wseg_8_backbuffer3);
+
+	/*draw scroller at its new position*/
+	last_scroll_pos = newpos;
+	CGA_FillRect(0xAA, 72 + last_scroll_pos, 191, CGAW(40), 6, wseg_8_backbuffer3);
+
+	/*copy to screen*/
+	CopyRectWithHand(wseg_8_backbuffer3, 72, 191, CGAW(192), 6);
+}
+
+/*
+Reset my phrase
+*/
+void ClearMyPhrase(void) {
+	int i;
+	DrawInputCursor(0);
+	my_phrase_len = 0;
+	for (i = 0;i < 16;i++)
+		my_phrase[i] = 0;
+}
+
+/*
+Reset alien's phrase
+*/
+void ClearAlienPhrase(void) {
+	int i;
+	for (i = 0;i < 16;i++)
+		alien_phrase[i] = 0;
+}
+
+/*
+Reset icon hint text
+*/
+void ClearIconText(void) {
+	int i;
+	for (i = 0;i < 13;i++)
+		icon_text[i] = ' ';
+}
+
+/*
+Show icon hint text
+*/
+void DrawIconText(void) {
+	PrintString(204, 96, icon_text, wseg_6_backbuffer1);
+	CGA_CopyRect(wseg_6_backbuffer1, 204, 96, CGAW(104), 8, frontbuffer);
+}
+
+/*
+Hide icon hint text
+*/
+void HideIconText(void) {
+	ClearIconText();
+	DrawIconText();
+}
+
+/*
+Draw my phrase icons
+*/
+void DrawMyPhrase(void) {
+	uint16 x = 176;
+	int i;
+	for (i = 0;i < 8;i++) {
+		DrawIcon(my_phrase[i], x, 112, wseg_8_backbuffer3);
+		x += 16;
+	}
+	CopyRectWithHand(wseg_8_backbuffer3, 176, 112, CGAW(128), 18);
+}
+
+/*
+Set input cursor pos and draw it
+*/
+void DrawInputCursor(byte curpos) {
+	inp_cursor_pos = curpos;
+	CGA_BlitRect(wseg_5_1000, 176, 130, CGAW(144), 6, wseg_8_backbuffer3);
+	CGA_DrawSprite(88, 176 + inp_cursor_pos * 16, 130, main_data, wseg_8_backbuffer3);
+	CopyRectWithHand(wseg_8_backbuffer3, 176, 130, CGAW(144), 6);
+}
+
+/*
+Draw alien's phrase icons
+*/
+void DrawAlienPhrase(void) {
+	uint16 x = 16;
+	int i;
+	/*TODO: some anim update*/
+	for (i = 0;i < 8;i++) {
+		/*draw lightning icon*/
+		DrawIcon(1, x, 112, wseg_8_backbuffer3);
+		CopyRectWithHand(wseg_8_backbuffer3, x, 112, CGAW(16), 18);
+		Idle(1);
+		DrawUpcomBackground();
+
+		DrawIcon(alien_phrase[i], x, 112, wseg_8_backbuffer3);
+		CopyRectWithHand(wseg_8_backbuffer3, x, 112, CGAW(16), 18);
+
+		if (alien_phrase[i - 1] != 0) {	/*TODO: oob when i == 0*/
+			PlaySound(5);
+			Idle(1);
+			DrawUpcomBackground();
+			StopSound();
+			Idle(1);
+			DrawUpcomBackground();
+		}
+		x += 16;
+	}
+	/*TODO: some anim update*/
+	StopSound();
+}
+
+void IconsScrollRight(void) {
+	/*TODO*/
+}
+
+void IconsScrollLeft(void) {
+	if (scroll_pos <= 2)
+		return;
+	/*TODO*/
+}
+
+/*
+Main upcom loop
+*/
 void Upcom(void) {
 	InitUpcom();
 	DrawDashButtons(0);
@@ -37,8 +233,10 @@ void Upcom(void) {
 	CopyRectWithHand(wseg_8_backbuffer3, 0, 100, CGAW(320), 99);
 	last_time_draw = ~0;
 	DrawTime(frontbuffer);
+	icons_base = 0;
+	scroll_pos = 2;
 	/*TODO*/
-	DrawIconsLine();
+	DrawIconsPalette();
 	inp_cursor_pos = ~0;
 	ClearMyPhrase();
 	DrawMyPhrase();
@@ -71,7 +269,7 @@ void Upcom(void) {
 			if (sp >= 92)
 				sp = 94;
 			scroll_pos = sp;
-			DrawIconsLine();	
+			DrawIconsPalette();	
 		}
 
 		/*TODO*/

@@ -46,6 +46,8 @@ void CGA_GrabRect(byte *pixels, uint16 x, uint16 y, byte w, byte h, byte *buffer
 void CGA_FillRect(byte pixel, uint16 x, uint16 y, byte w, byte h, byte *buffer);
 void CGA_ClearScreen(void);
 
+void CGA_BlitCanvasRectRecolor(byte *pixels, uint16 cw, byte color, uint16 x, uint16 y, byte w, byte h, byte *buffer);
+
 void CGA_DotCrossFade(byte *source, uint16 step, byte *target);
 
 void CGA_CopyRectByImage(byte index, uint16 x, uint16 y, byte *bank, byte *source, byte *target);

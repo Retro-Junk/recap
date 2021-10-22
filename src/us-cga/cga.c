@@ -598,3 +598,31 @@ void CGA_HLine(uint16 sx, uint16 sy, uint16 ex, byte color, byte *buffer) {
 		CGA_PutPixel(sx + t, sy, color, buffer);
 	}
 }
+
+
+/*
+Blit interlaced pixels from canvas to CGA frame buffer, applying color mask
+NB! Width is in bytes, not pixels
+*/
+void CGA_BlitCanvasRectRecolor(byte *pixels, uint16 cw, byte color, uint16 x, uint16 y, byte w, byte h, byte *buffer) {
+	uint16 i, j, ofs;
+	/*even lines*/
+	ofs = cga_lines_ofs[y] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		for (j = 0;j < w;j++) {
+			buffer[ofs + j] = pixels[j] & color;
+		}
+		pixels += cw;
+		ofs += CGA_BYTES_PER_LINE;
+	}
+
+	/*odd lines*/
+	ofs = cga_lines_ofs[y + 1] + x / CGA_PIXELS_PER_BYTE;
+	for (i = 0;i < h / 2;i++) {
+		for (j = 0;j < w;j++) {
+			buffer[ofs + j] = pixels[j] & color;
+		}
+		pixels += cw;
+		ofs += CGA_BYTES_PER_LINE;
+	}
+}
